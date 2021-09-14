@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const CollectionSchema = new mongoose.Schema({
     name: {
         type: String,
+        unique: true,
     },
     desc: {
         type: String,
