@@ -99,7 +99,7 @@ router.post('/login', (req, res, next) => {
 
 router.get('/profiles/:userName', (req, res, next) => {
     User.findOne({ username: req.params.userName })
-        .then((user) => {
+        .then(async (user) => {
             if (!user) {
                 res.status(404).json({
                     success: false,
@@ -109,18 +109,17 @@ router.get('/profiles/:userName', (req, res, next) => {
             } else {
                 const { username, email, public, posts } = user;
                 let postsArr = [];
-                for (p of posts) {
-                    Post.findById(p)
-                        .then((post) => {
-                            postsArr.push(post);
-                        })
-                        .catch((err) => {
-                            res.status(500).json({
-                                success: false,
-                                msg: 'Database error.',
-                                err,
-                            });
-                        });
+                try {
+                    for (let p of posts) {
+                        let post = await Post.findById(p).exec();
+                        postsArr.push(post);
+                    }
+                } catch (err) {
+                    res.status(500).json({
+                        success: false,
+                        msg: 'Database error.',
+                        err,
+                    });
                 }
                 if (public) {
                     res.status(200).json({
