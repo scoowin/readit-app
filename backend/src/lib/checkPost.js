@@ -1,17 +1,17 @@
 const mongoose = require('mongoose');
-const Collection = mongoose.model('Collection');
+const Post = mongoose.model('Post');
 
-function checkCollection(req, res, next) {
-    Collection.findOne({ name: req.params.collectionName })
-        .then((collection) => {
-            if (!collection) {
+function checkPost(req, res, next) {
+    Post.findById(req.params.postId)
+        .then((post) => {
+            if (!post) {
                 res.status(404).json({
                     success: false,
-                    msg: 'Collection not found.',
+                    msg: 'Post not found.',
                     err: null,
                 });
             } else {
-                req.collection = collection;
+                req.post = post;
                 next();
             }
         })
@@ -24,4 +24,4 @@ function checkCollection(req, res, next) {
         });
 }
 
-module.exports = checkCollection;
+module.exports = checkPost;

@@ -24,6 +24,17 @@ router.post('/new', authMiddleware, (req, res, next) => {
         newCollection
             .save()
             .then((collection) => {
+                User.findByIdAndUpdate(req.jwt.sub, {
+                    $push: { collections: collection._id },
+                })
+                    .then((user) => {})
+                    .catch((err) => {
+                        res.status(500).json({
+                            success: false,
+                            msg: 'Database error',
+                            err,
+                        });
+                    });
                 res.status(201).json({
                     success: true,
                     msg: 'Collection created successfully.',
@@ -58,48 +69,53 @@ router.get(
     checkCollection,
     (req, res, next) => {
         const userId = req.jwt.sub;
-        const collectionId = req.collectionId;
-        const username;
-        const collectionName;
-        User.findByIdAndUpdate(userId, {
-            $push: { collections: collectionId },
-        })
-            .then((user) => {
-                username = user.username;
-            })
-            .catch((err) => {
-                res.status(500).json({
-                    success: false,
-                    msg: 'Database error.',
-                    err,
-                });
+        const collectionId = req.collection._id;
+        let username;
+        let collectionName;
+        try {
+            User.findById(userId).then((user) => {
+                console.log(userId);
+                console.log(user);
+                console.log(user.collections.indexOf(collectionId));
+                if (user.collections.indexOf(collectionId) !== -1) {
+                    res.status(200).json({
+                        success: true,
+                        msg: 'Collection already joined.',
+                        err: null,
+                    });
+                } else {
+                    User.findByIdAndUpdate(userId, {
+                        $push: { collections: collectionId },
+                    }).then((user) => {
+                        username = user.username;
+                    });
+                    Collection.findByIdAndUpdate(collectionId, {
+                        $push: { usersAllowed: userId },
+                    }).then((collection) => {
+                        collectionName = collection.name;
+                    });
+                    res.status(200).json({
+                        success: true,
+                        msg: 'Collection joined successfully.',
+                        err: null,
+                        user: {
+                            _id: userId,
+                            username,
+                        },
+                        collection: {
+                            _id: collectionId,
+                            name: collectionName,
+                        },
+                    });
+                }
             });
-        Collection.findByIdAndUpdate(collectionId, {
-            $push: { usersAllowed: userId },
-        })
-            .then((collection) => {
-                collectionName = collection.name;
-            })
-            .catch((err) => {
-                res.status(500).json({
-                    success: false,
-                    msg: 'Database error.',
-                    err,
-                });
+        } catch (err) {
+            res.status(500).json({
+                success: false,
+                msg: 'Database error.',
+                err,
             });
-        res.status(200).json({
-            success: true,
-            msg: 'Collection joined successfully.',
-            err: null,
-            user: {
-                _id: userId,
-                username
-            },
-            collection: {
-                _id: collectionId,
-                name: collectionName,
-            },
-        });
+        }
     }
 );
 
