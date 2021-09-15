@@ -8,6 +8,10 @@ const CollectionSchema = new mongoose.Schema({
     desc: {
         type: String,
     },
+    owner: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+    },
     admins: [
         {
             type: mongoose.Schema.Types.ObjectId,

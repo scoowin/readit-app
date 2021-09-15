@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const mongoose = require('mongoose');
 const User = mongoose.model('User');
+const Post = mongoose.model('Post');
 const authUtils = require('../lib/authUtils');
 const issueJWT = require('../lib/issueJWT');
 
@@ -18,7 +19,7 @@ router.post('/register', (req, res, next) => {
             email: req.body.email,
             hash,
             salt,
-            public: false,
+            public: true,
             posts: [],
             collections: [],
         });
@@ -95,8 +96,8 @@ router.post('/login', (req, res, next) => {
     }
 });
 
-router.get('/profiles/:userId', (req, res, next) => {
-    User.findById(req.params.userId)
+router.get('/profiles/:userName', (req, res, next) => {
+    User.findOne({ username: req.params.userName })
         .then((user) => {
             if (!user) {
                 res.status(404).json({
@@ -106,6 +107,20 @@ router.get('/profiles/:userId', (req, res, next) => {
                 });
             } else {
                 const { username, email, public, posts } = user;
+                let postsArr = [];
+                for (p of posts) {
+                    Post.findById(p)
+                        .then((post) => {
+                            postsArr.push(post);
+                        })
+                        .catch((err) => {
+                            res.status(500).json({
+                                success: false,
+                                msg: 'Database error.',
+                                err,
+                            });
+                        });
+                }
                 if (public) {
                     res.status(200).json({
                         success: true,
@@ -115,7 +130,7 @@ router.get('/profiles/:userId', (req, res, next) => {
                             username,
                             email,
                             public,
-                            posts,
+                            posts: postsArr,
                         },
                     });
                 } else {

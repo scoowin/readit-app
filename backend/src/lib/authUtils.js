@@ -6,7 +6,7 @@ function validatePassword(password, hash, salt) {
     let hash1 = crypto
         .pbkdf2Sync(password, salt, 10000, 64, 'sha512')
         .toString('hex');
-    return hash === hashVerify;
+    return hash1 === hash;
 }
 
 function generatePassword(password) {
