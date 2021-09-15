@@ -12,21 +12,12 @@ const CollectionSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
     },
-    admins: [
-        {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'User',
-        },
-    ],
     usersAllowed: [
         {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
         },
     ],
-    public: {
-        type: Boolean,
-    },
     posts: [
         {
             type: mongoose.Schema.Types.ObjectId,

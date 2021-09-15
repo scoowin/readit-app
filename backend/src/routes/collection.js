@@ -4,6 +4,7 @@ const User = mongoose.model('User');
 const Collection = mongoose.model('Collection');
 const Post = mongoose.model('Post');
 const authMiddleware = require('../lib/authMiddleware');
+const checkCollection = require('../lib/checkCollection');
 
 router.post('/new', authMiddleware, (req, res, next) => {
     if (!(req.body.name && req.body.desc)) {
@@ -17,13 +18,12 @@ router.post('/new', authMiddleware, (req, res, next) => {
             name: req.body.name,
             desc: req.body.desc,
             owner: req.jwt.sub,
-            admins: [req.jwt.sub],
             usersAllowed: [req.jwt.sub],
-            public: true,
             posts: [],
         });
-        try {
-            newCollection.save().then((collection) => {
+        newCollection
+            .save()
+            .then((collection) => {
                 res.status(201).json({
                     success: true,
                     msg: 'Collection created successfully.',
@@ -33,74 +33,109 @@ router.post('/new', authMiddleware, (req, res, next) => {
                         name: collection.name,
                     },
                 });
+            })
+            .catch((err) => {
+                res.status(500).json({
+                    success: false,
+                    msg: 'Database error',
+                    err,
+                });
             });
-        } catch (err) {
-            res.status(500).json({
-                success: false,
-                msg: 'Database error',
-                err,
-            });
-        }
     }
 });
 
 //TODO
 router.post(
-    '/:collectionName/post/:postId/show',
+    '/:collectionName/post/:postId/new',
     authMiddleware,
+    checkCollection,
     (req, res, next) => {}
 );
 
-//TODO
-router.get('/:collectionName/join', authMiddleware, (req, res, next) => {});
-
-//TODO
-router.get('/:collectionName/post/:postId', (req, res, next) => {});
-
-router.get('/:collectionName/show', (req, res, next) => {
-    Collection.findOne({ name: req.params.collectionName })
-        .then((collection) => {
-            if (!collection) {
-                res.status(404).json({
-                    success: false,
-                    msg: 'Collection not found.',
-                    err: null,
-                });
-            } else {
-                const { name, desc, posts } = collection;
-                let postsArr = [];
-                for (p of posts) {
-                    Post.findById(p)
-                        .then((post) => {
-                            postsArr.push(post);
-                        })
-                        .catch((err) => {
-                            res.status(500).json({
-                                success: false,
-                                msg: 'Database error.',
-                                err,
-                            });
-                        });
-                }
-                res.status(200).json({
-                    success: true,
-                    msg: 'Collection found.',
-                    err: null,
-                    collection: {
-                        name,
-                        desc,
-                        posts: postsArr,
-                    },
-                });
-            }
+router.get(
+    '/:collectionName/join',
+    authMiddleware,
+    checkCollection,
+    (req, res, next) => {
+        const userId = req.jwt.sub;
+        const collectionId = req.collectionId;
+        const username;
+        const collectionName;
+        User.findByIdAndUpdate(userId, {
+            $push: { collections: collectionId },
         })
-        .catch((err) => {
-            res.status(500).json({
-                success: false,
-                msg: 'Database error.',
-                err,
+            .then((user) => {
+                username = user.username;
+            })
+            .catch((err) => {
+                res.status(500).json({
+                    success: false,
+                    msg: 'Database error.',
+                    err,
+                });
             });
+        Collection.findByIdAndUpdate(collectionId, {
+            $push: { usersAllowed: userId },
+        })
+            .then((collection) => {
+                collectionName = collection.name;
+            })
+            .catch((err) => {
+                res.status(500).json({
+                    success: false,
+                    msg: 'Database error.',
+                    err,
+                });
+            });
+        res.status(200).json({
+            success: true,
+            msg: 'Collection joined successfully.',
+            err: null,
+            user: {
+                _id: userId,
+                username
+            },
+            collection: {
+                _id: collectionId,
+                name: collectionName,
+            },
         });
+    }
+);
+
+//TODO
+router.get(
+    '/:collectionName/post/:postId/show',
+    checkCollection,
+    (req, res, next) => {}
+);
+
+router.get('/:collectionName/show', checkCollection, (req, res, next) => {
+    const { name, desc, posts } = req.collection;
+    let postsArr = [];
+    for (p of posts) {
+        Post.findById(p)
+            .then((post) => {
+                postsArr.push(post);
+            })
+            .catch((err) => {
+                res.status(500).json({
+                    success: false,
+                    msg: 'Database error.',
+                    err,
+                });
+            });
+    }
+    res.status(200).json({
+        success: true,
+        msg: 'Collection found.',
+        err: null,
+        collection: {
+            name,
+            desc,
+            posts: postsArr,
+        },
+    });
 });
 
 module.exports = router;

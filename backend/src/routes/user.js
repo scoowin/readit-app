@@ -23,8 +23,9 @@ router.post('/register', (req, res, next) => {
             posts: [],
             collections: [],
         });
-        try {
-            newUser.save().then((user) => {
+        newUser
+            .save()
+            .then((user) => {
                 res.status(201).json({
                     success: true,
                     msg: 'User registered successfully.',
@@ -35,14 +36,14 @@ router.post('/register', (req, res, next) => {
                         email: user.email,
                     },
                 });
+            })
+            .catch((err) => {
+                res.status(500).json({
+                    success: false,
+                    msg: 'Database error',
+                    err,
+                });
             });
-        } catch (err) {
-            res.status(500).json({
-                success: false,
-                msg: 'Database error',
-                err,
-            });
-        }
     }
 });
 
