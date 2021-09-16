@@ -1,5 +1,6 @@
 const router = require('express').Router();
 const mongoose = require('mongoose');
+const authMiddleware = require('../lib/authMiddleware');
 const User = mongoose.model('User');
 const Post = mongoose.model('Post');
 const authUtils = require('../lib/authUtils');
@@ -153,6 +154,52 @@ router.get('/profiles/:userName', (req, res, next) => {
                 err,
             });
         });
+});
+
+router.get('/myPosts', authMiddleware, async (req, res, next) => {
+    try {
+        const user = await User.findById(req.jwt.sub).exec();
+        const posts = user.posts;
+        let postsArr = [];
+        for (let p of posts) {
+            let post = await Post.findById(p).exec();
+            postsArr.push(post);
+        }
+        res.status(200).json({
+            success: true,
+            msg: 'Query successful.',
+            err: null,
+            posts: postsArr,
+        });
+    } catch (err) {
+        res.status(500).json({
+            success: false,
+            msg: 'Database error',
+            err,
+        });
+    }
+});
+
+router.get('/recents', authMiddleware, async (req, res, next) => {
+    try {
+        const posts = await Post.find()
+            .sort({ createdAt: -1 })
+            .limit(100)
+            .exec();
+        res.status(200).json({
+            success: true,
+            msg: 'Query successful',
+            err: null,
+            posts,
+        });
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({
+            success: false,
+            msg: 'Database error',
+            err,
+        });
+    }
 });
 
 module.exports = router;

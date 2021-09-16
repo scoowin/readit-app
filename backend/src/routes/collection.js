@@ -93,6 +93,7 @@ router.post(
                         author,
                         body: req.body.body,
                         comments: [],
+                        createdAt: Date.now(),
                     });
                     const post = await newPost.save();
                     await User.findByIdAndUpdate(userId, {
@@ -122,6 +123,7 @@ router.post(
     }
 );
 
+//Create new comment
 router.post(
     '/:collectionName/post/:postId/comment/new',
     authMiddleware,
@@ -137,9 +139,9 @@ router.post(
         } else {
             try {
                 const collection = await Collection.findById(
-                    collectionId
+                    req.collection._id
                 ).exec();
-                if (collection.usersAllowed.indexOf(userId) === -1) {
+                if (collection.usersAllowed.indexOf(req.jwt.sub) === -1) {
                     res.status(401).json({
                         success: false,
                         msg: 'Must join collection before commenting on posts.',
@@ -167,6 +169,7 @@ router.post(
                     });
                 }
             } catch (err) {
+                console.log(err);
                 res.status(500).json({
                     success: false,
                     msg: 'Database error.',
@@ -233,26 +236,55 @@ router.get(
     }
 );
 
+//Leave collection
+router.get(
+    '/:collectionName/leave',
+    authMiddleware,
+    checkCollection,
+    async (req, res, next) => {
+        try {
+            const userId = req.jwt.sub;
+            const collectionId = req.collection._id;
+            await User.findByIdAndUpdate(userId, {
+                $pull: { collections: collectionId },
+            }).exec();
+            await Collection.findByIdAndUpdate(collectionId, {
+                $pull: { usersAllowed: userId },
+            }).exec();
+            res.status(200).json({
+                success: true,
+                msg: 'Query successful.',
+                err: null,
+            });
+        } catch (err) {
+            res.status(500).json({
+                success: false,
+                msg: 'Database error.',
+                err,
+            });
+        }
+    }
+);
+
 //Show post from collection using postId
 router.get(
     '/:collectionName/post/:postId/show',
     checkCollection,
     checkPost,
-    (req, res, next) => {
+    async (req, res, next) => {
         const { title, author, body, comments } = req.post;
         let commentsArr = [];
-        for (let c of comments) {
-            Comment.findById(c)
-                .then((comment) => {
-                    commentsArr.push(comment);
-                })
-                .catch((err) => {
-                    res.status(500).json({
-                        success: false,
-                        msg: 'Database error.',
-                        err,
-                    });
-                });
+        try {
+            for (let c of comments) {
+                let comment = await Comment.findById(c).exec();
+                commentsArr.push(comment);
+            }
+        } catch (err) {
+            res.status(500).json({
+                success: false,
+                msg: 'Database error.',
+                err,
+            });
         }
         res.status(200).json({
             success: true,

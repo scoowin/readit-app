@@ -16,6 +16,9 @@ const PostSchema = new mongoose.Schema({
             ref: 'Comment',
         },
     ],
+    createdAt: {
+        type: Date,
+    },
 });
 
 module.exports = mongoose.model('Post', PostSchema);
