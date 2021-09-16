@@ -6,6 +6,7 @@ const Post = mongoose.model('Post');
 const authUtils = require('../lib/authUtils');
 const issueJWT = require('../lib/issueJWT');
 
+//Register user
 router.post('/register', (req, res, next) => {
     if (!(req.body.username && req.body.password && req.body.email)) {
         res.status(400).json({
@@ -48,6 +49,7 @@ router.post('/register', (req, res, next) => {
     }
 });
 
+//Login user
 router.post('/login', (req, res, next) => {
     if (!(req.body.username && req.body.password)) {
         res.status(400).json({
@@ -98,6 +100,7 @@ router.post('/login', (req, res, next) => {
     }
 });
 
+//Get user Profile
 router.get('/profiles/:userName', (req, res, next) => {
     User.findOne({ username: req.params.userName })
         .then(async (user) => {
@@ -156,6 +159,7 @@ router.get('/profiles/:userName', (req, res, next) => {
         });
 });
 
+//Get user posts
 router.get('/myPosts', authMiddleware, async (req, res, next) => {
     try {
         const user = await User.findById(req.jwt.sub).exec();
@@ -180,6 +184,7 @@ router.get('/myPosts', authMiddleware, async (req, res, next) => {
     }
 });
 
+//Get recent posts across entire website
 router.get('/recents', authMiddleware, async (req, res, next) => {
     try {
         const posts = await Post.find()

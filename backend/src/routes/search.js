@@ -5,6 +5,7 @@ const User = mongoose.model('User');
 const Collection = mongoose.model('Collection');
 const Post = mongoose.model('Post');
 
+//Search the database using searchQuery
 router.get('/:searchQuery', authMiddleware, async (req, res, next) => {
     try {
         searchQuery = req.params.searchQuery;
